@@ -17,7 +17,6 @@ const statusDiv = document.getElementById('status');
 const roomStatusDiv = document.getElementById('room-status');
 const pingDisplay = document.getElementById('ping-display');
 const toggleSync = document.getElementById('toggle-sync');
-const playerWrapper = document.getElementById('player-wrapper');
 const toastNotification = document.getElementById('toast-notification');
 
 const tabCriar = document.getElementById('tab-criar');
@@ -31,13 +30,6 @@ const btnEntrarSala = document.getElementById('btn-entrar-sala');
 
 const inputVideoUrl = document.getElementById('input-video-url');
 const btnCarregar = document.getElementById('btn-carregar');
-
-const teclasControlePlayer = [
-  'ArrowLeft', 'ArrowRight', 'Space', 
-  'KeyJ', 'KeyL', 'KeyK',
-  'Digit0', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 
-  'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'
-];
 
 function extractVideoID(url) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -55,28 +47,6 @@ function exibirNotificacao(texto) {
     toastNotification.style.display = 'none';
   }, 4000);
 }
-
-function desativarSyncPorInteracaoManual() {
-  if (souHost || !syncInteligenteAtivo || !emSala) return;
-
-  syncInteligenteAtivo = false;
-  toggleSync.checked = false;
-
-  statusDiv.innerText = '⚠️ Sync Desativado: Modo Livre (Ative a chave para voltar!)';
-  statusDiv.style.color = '#ffb300';
-
-  exibirNotificacao('⚠️ Sync Desativado: Modo Livre ativado.');
-}
-
-playerWrapper.addEventListener('mousedown', desativarSyncPorInteracaoManual);
-playerWrapper.addEventListener('touchstart', desativarSyncPorInteracaoManual);
-
-document.addEventListener('keydown', (event) => {
-  if (!emSala || souHost || !syncInteligenteAtivo) return;
-  if (teclasControlePlayer.includes(event.code)) {
-    desativarSyncPorInteracaoManual();
-  }
-});
 
 tabCriar.addEventListener('click', () => {
   tabCriar.classList.add('active');
@@ -107,12 +77,13 @@ function enviarAcaoSala(actionType) {
   socket.emit('join_room', { roomId, password, actionType });
 }
 
+// Controle Manual da Chave Liga/Desliga
 toggleSync.addEventListener('change', (e) => {
   syncInteligenteAtivo = e.target.checked;
   if (syncInteligenteAtivo) {
     statusDiv.innerText = 'Status: Sync Constante Inteligente ATIVADO ⚡';
     statusDiv.style.color = '#00e676';
-    exibirNotificacao('⚡ Sync Inteligente Reativado!');
+    exibirNotificacao('⚡ Sync Inteligente Reativado! Sincronizando...');
   } else {
     statusDiv.innerText = 'Status: Sync Constante DESATIVADO (Modo Livre)';
     statusDiv.style.color = '#ffb300';
@@ -121,6 +92,7 @@ toggleSync.addEventListener('change', (e) => {
   }
 });
 
+// Loop de medição de Ping
 setInterval(() => {
   const inicio = Date.now();
   socket.emit('ping_check', inicio, (timeEnviado) => {
@@ -161,8 +133,8 @@ socket.on('promoted_to_host', () => {
 
 window.onYouTubeIframeAPIReady = function() {
   player = new YT.Player('player', {
-    height: '100%',
-    width: '100%',
+    height: '480',
+    width: '854',
     playerVars: {
       'playsinline': 1,
       'autoplay': 0,
@@ -209,6 +181,7 @@ socket.on('sync_video', (videoId) => {
   carregarVideoNoPlayer(videoId);
 });
 
+// Envio de tempo pelo Host
 setInterval(() => {
   if (emSala && souHost && playerPronto && player && typeof player.getCurrentTime === 'function' && playerState === YT.PlayerState.PLAYING) {
     socket.emit('send_tempo', {
@@ -218,6 +191,7 @@ setInterval(() => {
   }
 }, 1000);
 
+// Recepção e ajuste pelo Espectador
 socket.on('sync_tempo', ({ tempoHost, pingHost }) => {
   if (souHost || !syncInteligenteAtivo || !emSala || !playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
 
