@@ -3,15 +3,18 @@ const socket = io('https://stream-sync-server.onrender.com');
 let player;
 let modoLivre = false;
 let playerState = -1;
+let currentRoom = 'sala-padrao'; 
 
 const statusDiv = document.getElementById('status');
+const roomStatusDiv = document.getElementById('room-status');
 const btnVoltar = document.getElementById('btn-voltar');
 const btnSincronizar = document.getElementById('btn-sincronizar');
+
+const inputRoomId = document.getElementById('input-room-id');
+const btnEntrarSala = document.getElementById('btn-entrar-sala');
+
 const inputVideoUrl = document.getElementById('input-video-url');
 const btnCarregar = document.getElementById('btn-carregar');
-
-let currentVideoId = 'cctw1fn_630'; 
-
 
 function extractVideoID(url) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -20,11 +23,33 @@ function extractVideoID(url) {
 }
 
 
+socket.on('connect', () => {
+  entrarNaSala(currentRoom);
+});
+
+function entrarNaSala(roomId) {
+  currentRoom = roomId;
+  socket.emit('join_room', roomId);
+  roomStatusDiv.innerText = `Sala atual: ${roomId}`;
+}
+
+
+btnEntrarSala.addEventListener('click', () => {
+  const room = inputRoomId.value.trim();
+  if (room) {
+    entrarNaSala(room);
+    inputRoomId.value = '';
+  } else {
+    alert('Digite um nome ou código para a sala!');
+  }
+});
+
+
 window.onYouTubeIframeAPIReady = function() {
   player = new YT.Player('player', {
     height: '480',
     width: '854',
-    videoId: currentVideoId,
+    videoId: 'cctw1fn_630',
     playerVars: {
       'playsinline': 1,
       'autoplay': 0,
@@ -62,10 +87,9 @@ btnCarregar.addEventListener('click', () => {
 
 socket.on('sync_video', (videoId) => {
   if (player && typeof player.loadVideoById === 'function') {
-    currentVideoId = videoId;
     modoLivre = false;
     player.loadVideoById(videoId);
-    statusDiv.innerText = 'Status: Novo vídeo carregado para a sala!';
+    statusDiv.innerText = 'Status: Vídeo carregado na sala!';
     statusDiv.style.color = '#00e676';
   }
 });
@@ -83,14 +107,14 @@ socket.on('sync_tempo', (tempoHost) => {
   if (!player || typeof player.getCurrentTime !== 'function') return;
 
   if (modoLivre) {
-    statusDiv.innerText = 'Status: Modo Livre (Desincronizado para rever lance)';
+    statusDiv.innerText = 'Status: Modo Livre (Desincronizado)';
     statusDiv.style.color = '#ffb300';
     return;
   }
 
   if (playerState !== YT.PlayerState.PLAYING) return;
 
-  statusDiv.innerText = 'Status: Sincronizado com o grupo';
+  statusDiv.innerText = 'Status: Sincronizado com a sala';
   statusDiv.style.color = '#00e676';
 
   const tempoLocal = player.getCurrentTime();

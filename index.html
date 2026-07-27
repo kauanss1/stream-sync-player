@@ -23,10 +23,10 @@
       margin-bottom: 20px;
     }
 
-    .url-container {
+    .box-container {
       display: flex;
       gap: 10px;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       width: 100%;
       max-width: 854px;
     }
@@ -64,7 +64,7 @@
       background-color: #9146FF;
       color: white;
       border: none;
-      padding: 12px 24px;
+      padding: 12px 20px;
       border-radius: 6px;
       cursor: pointer;
       font-weight: bold;
@@ -89,6 +89,12 @@
       color: #00e676;
       font-weight: 500;
     }
+
+    .room-info {
+      font-size: 0.85rem;
+      color: #a8a8b3;
+      margin-top: 5px;
+    }
   </style>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -97,9 +103,14 @@
 
   <h1>Watch Party Sync 🎬</h1>
 
-  <div class="url-container">
+  <div class="box-container">
+    <input type="text" id="input-room-id" placeholder="Nome ou código da sala (Ex: sala123)">
+    <button id="btn-entrar-sala">Entrar na Sala</button>
+  </div>
+
+  <div class="box-container">
     <input type="text" id="input-video-url" placeholder="Cole o link do vídeo ou live do YouTube aqui...">
-    <button id="btn-carregar">Carregar Vídeo</button>
+    <button id="btn-carregar">Trocar Vídeo</button>
   </div>
 
   <div id="player-container">
@@ -112,6 +123,7 @@
   </div>
 
   <div id="status">Status: Conectando...</div>
+  <div id="room-status" class="room-info">Sala atual: Nenhuma</div>
 
   <script src="app.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
