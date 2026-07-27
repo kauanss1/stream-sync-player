@@ -26,7 +26,7 @@
     .box-container {
       display: flex;
       gap: 10px;
-      margin-bottom: 12px;
+      margin-bottom: 15px;
       width: 100%;
       max-width: 854px;
     }
@@ -44,6 +44,14 @@
     input:focus {
       outline: none;
       border-color: #9146FF;
+    }
+
+    /* Oculta a área de vídeo e controles até o usuário entrar na sala */
+    #main-app {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
     }
 
     #player-container {
@@ -91,7 +99,7 @@
     }
 
     .room-info {
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       color: #a8a8b3;
       margin-top: 5px;
     }
@@ -103,28 +111,31 @@
 
   <h1>Watch Party Sync 🎬</h1>
 
-  <div class="box-container">
-    <input type="text" id="input-room-id" placeholder="Nome do Lobby (Ex: sala-tck)">
-    <input type="password" id="input-room-pass" placeholder="Senha do Lobby">
+  <div id="lobby-card" class="box-container">
+    <input type="text" id="input-room-id" placeholder="Nome do Lobby (Ex: lobby-tck)">
+    <input type="password" id="input-room-pass" placeholder="Senha privada">
     <button id="btn-entrar-sala">Entrar / Criar Lobby</button>
   </div>
 
-  <div class="box-container">
-    <input type="text" id="input-video-url" placeholder="Cole o link do vídeo ou live do YouTube aqui...">
-    <button id="btn-carregar">Trocar Vídeo</button>
-  </div>
+  <div id="room-status" class="room-info">Você precisa entrar ou criar uma sala para continuar.</div>
 
-  <div id="player-container">
-    <div id="player"></div>
-  </div>
+  <div id="main-app">
+    <div class="box-container" style="margin-top: 20px;">
+      <input type="text" id="input-video-url" placeholder="Cole a URL do vídeo ou live do YouTube...">
+      <button id="btn-carregar">Carregar Vídeo</button>
+    </div>
 
-  <div class="controls">
-    <button id="btn-voltar" class="secondary">⏪ Voltar 10s (Modo Livre)</button>
-    <button id="btn-sincronizar">🔄 Sincronizar com o Grupo</button>
-  </div>
+    <div id="player-container">
+      <div id="player"></div>
+    </div>
 
-  <div id="status">Status: Conectando...</div>
-  <div id="room-status" class="room-info">Lobby atual: Nenhum</div>
+    <div class="controls">
+      <button id="btn-voltar" class="secondary">⏪ Voltar 10s (Modo Livre)</button>
+      <button id="btn-sincronizar">🔄 Sincronizar com o Grupo</button>
+    </div>
+
+    <div id="status">Status: Aguardando vídeo...</div>
+  </div>
 
   <script src="app.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
