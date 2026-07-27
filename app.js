@@ -6,6 +6,7 @@ let playerState = -1;
 let emSala = false;
 let playerPronto = false;
 let pendingVideoId = null;
+let souHost = false; 
 
 
 const lobbyCard = document.getElementById('lobby-card');
@@ -27,12 +28,12 @@ const btnCarregar = document.getElementById('btn-carregar');
 const btnVoltar = document.getElementById('btn-voltar');
 const btnSincronizar = document.getElementById('btn-sincronizar');
 
+
 function extractVideoID(url) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
 }
-
 
 tabCriar.addEventListener('click', () => {
   tabCriar.classList.add('active');
@@ -49,14 +50,8 @@ tabEntrar.addEventListener('click', () => {
 });
 
 
-btnCriarSala.addEventListener('click', () => {
-  enviarAcaoSala('create');
-});
-
-
-btnEntrarSala.addEventListener('click', () => {
-  enviarAcaoSala('join');
-});
+btnCriarSala.addEventListener('click', () => enviarAcaoSala('create'));
+btnEntrarSala.addEventListener('click', () => enviarAcaoSala('join'));
 
 function enviarAcaoSala(actionType) {
   const roomId = inputRoomId.value.trim();
@@ -75,18 +70,32 @@ socket.on('room_error', (msg) => {
   alert(msg);
 });
 
-socket.on('room_joined', ({ roomId, videoId }) => {
+socket.on('room_joined', ({ roomId, videoId, isHost }) => {
   emSala = true;
+  souHost = isHost;
+
   lobbyCard.style.display = 'none';
   mainApp.style.display = 'flex';
-  roomStatusDiv.innerText = `Lobby ativo: ${roomId}`;
+
+  const papel = souHost ? '👑 Anfitrião (Líder)' : '👀 Espectador';
+  roomStatusDiv.innerText = `Lobby ativo: ${roomId} | Seu papel: ${papel}`;
 
   if (videoId) {
     carregarVideoNoPlayer(videoId);
   } else {
-    statusDiv.innerText = 'Status: Cole um link do YouTube para iniciar.';
+    statusDiv.innerText = souHost 
+      ? 'Status: Você é o anfitrião. Cole um vídeo para iniciar!' 
+      : 'Status: Aguardando o anfitrião carregar um vídeo.';
     statusDiv.style.color = '#ffb300';
   }
+});
+
+
+socket.on('promoted_to_host', () => {
+  souHost = true;
+  roomStatusDiv.innerText = `Lobby ativo: ${inputRoomId.value.trim()} | Seu papel: 👑 Anfitrião (Novo Líder)`;
+  statusDiv.innerText = 'Status: Você se tornou o novo anfitrião da sala!';
+  statusDiv.style.color = '#00e676';
 });
 
 
@@ -145,23 +154,25 @@ socket.on('sync_video', (videoId) => {
 
 
 setInterval(() => {
-  if (emSala && playerPronto && player && typeof player.getCurrentTime === 'function' && playerState === YT.PlayerState.PLAYING) {
+  if (emSala && souHost && playerPronto && player && typeof player.getCurrentTime === 'function' && playerState === YT.PlayerState.PLAYING) {
     socket.emit('send_tempo', player.getCurrentTime());
   }
 }, 1000);
 
+
 socket.on('sync_tempo', (tempoHost) => {
-  if (!emSala || !playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
+
+  if (souHost || !emSala || !playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
 
   if (modoLivre) {
-    statusDiv.innerText = 'Status: Modo Livre (Desincronizado)';
+    statusDiv.innerText = 'Status: Modo Livre (Desincronizado do Anfitrião)';
     statusDiv.style.color = '#ffb300';
     return;
   }
 
   if (playerState !== YT.PlayerState.PLAYING) return;
 
-  statusDiv.innerText = 'Status: Sincronizado com o lobby';
+  statusDiv.innerText = 'Status: Sincronizado com o Anfitrião 👑';
   statusDiv.style.color = '#00e676';
 
   const tempoLocal = player.getCurrentTime();
@@ -187,6 +198,6 @@ btnVoltar.addEventListener('click', () => {
 
 btnSincronizar.addEventListener('click', () => {
   modoLivre = false;
-  statusDiv.innerText = 'Status: Sincronizando...';
+  statusDiv.innerText = 'Status: Sincronizando com o Anfitrião...';
   statusDiv.style.color = '#00e676';
 });
