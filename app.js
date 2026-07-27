@@ -10,6 +10,11 @@ let souHost = false;
 
 let syncInteligenteAtivo = true;
 
+
+let ultimoTempoConhecido = 0;
+let ignorarProximoSeek = false;
+
+
 let meuPing = 0; // ms
 
 
@@ -39,7 +44,6 @@ function extractVideoID(url) {
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
 }
-
 
 tabCriar.addEventListener('click', () => {
   tabCriar.classList.add('active');
@@ -72,6 +76,17 @@ function enviarAcaoSala(actionType) {
 }
 
 
+function desativarSyncPorMoverBarra() {
+  if (souHost || !syncInteligenteAtivo) return;
+
+  syncInteligenteAtivo = false;
+  toggleSync.checked = false;
+
+  statusDiv.innerText = '⚠️ Sync Desativado: Você mexeu no tempo (Modo Livre). Clique em Re-Sync para voltar ao Anfitrião!';
+  statusDiv.style.color = '#ffb300';
+}
+
+
 toggleSync.addEventListener('change', (e) => {
   syncInteligenteAtivo = e.target.checked;
   if (syncInteligenteAtivo) {
@@ -83,6 +98,7 @@ toggleSync.addEventListener('change', (e) => {
     if (playerPronto && player) player.setPlaybackRate(1.0);
   }
 });
+
 
 setInterval(() => {
   const inicio = Date.now();
@@ -121,7 +137,6 @@ socket.on('promoted_to_host', () => {
   statusDiv.style.color = '#00e676';
 });
 
-
 window.onYouTubeIframeAPIReady = function() {
   player = new YT.Player('player', {
     height: '480',
@@ -155,6 +170,25 @@ function carregarVideoNoPlayer(videoId) {
   }
 }
 
+
+setInterval(() => {
+  if (!playerPronto || !player || typeof player.getCurrentTime !== 'function' || souHost || !syncInteligenteAtivo) return;
+
+  const tempoAtual = player.getCurrentTime();
+  const diferencaComUltimoTempo = Math.abs(tempoAtual - ultimoTempoConhecido);
+
+
+  if (ultimoTempoConhecido > 0 && diferencaComUltimoTempo > 2.5) {
+    if (ignorarProximoSeek) {
+      ignorarProximoSeek = false;
+    } else {
+      desativarSyncPorMoverBarra();
+    }
+  }
+
+  ultimoTempoConhecido = tempoAtual;
+}, 500);
+
 btnCarregar.addEventListener('click', () => {
   if (!emSala) return;
   const url = inputVideoUrl.value.trim();
@@ -184,25 +218,20 @@ setInterval(() => {
 
 
 socket.on('sync_tempo', ({ tempoHost, pingHost }) => {
-
   if (souHost || !syncInteligenteAtivo || !emSala || !playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
 
   if (playerState !== YT.PlayerState.PLAYING) return;
 
-
-  const atrasoHostAoServidorSeg = (pingHost / 2) / 1000;
-  const atrasoServidorAoEspectadorSeg = (meuPing / 2) / 1000;
-  const latenciaTotalSeg = atrasoHostAoServidorSeg + atrasoServidorAoEspectadorSeg;
-
-
-  const tempoRealCalculadoHost = tempoHost + latenciaTotalSeg;
+  
+  const atrasoHost = (pingHost / 2) / 1000;
+  const atrasoEspectador = (meuPing / 2) / 1000;
+  const tempoRealCalculadoHost = tempoHost + atrasoHost + atrasoEspectador;
 
   const tempoLocal = player.getCurrentTime();
   const diferenca = tempoRealCalculadoHost - tempoLocal;
 
   statusDiv.innerText = 'Status: Sync Constante Inteligente (Compensado) ⚡';
   statusDiv.style.color = '#00e676';
-
 
   if (Math.abs(diferenca) < 0.5) {
     player.setPlaybackRate(1.0);
@@ -211,20 +240,32 @@ socket.on('sync_tempo', ({ tempoHost, pingHost }) => {
   } else if (diferenca <= -0.5 && diferenca > -3.0) {
     player.setPlaybackRate(0.95);
   } else if (Math.abs(diferenca) >= 3.0) {
+    ignorarProximoSeek = true; 
     player.seekTo(tempoRealCalculadoHost, true);
     player.setPlaybackRate(1.0);
   }
 });
 
+
 btnVoltar.addEventListener('click', () => {
   if (!playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
+
+  ignorarProximoSeek = true;
   player.seekTo(player.getCurrentTime() - 10, true);
+
+  if (!souHost) {
+    desativarSyncPorMoverBarra();
+  }
 });
 
 
 btnSincronizar.addEventListener('click', () => {
   if (!playerPronto || !player) return;
+
+  syncInteligenteAtivo = true;
+  toggleSync.checked = true;
   player.setPlaybackRate(1.0);
+
   statusDiv.innerText = 'Status: Re-sincronizando com o Anfitrião...';
   statusDiv.style.color = '#00e676';
 });
