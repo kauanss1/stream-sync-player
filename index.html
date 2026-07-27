@@ -31,7 +31,7 @@
       max-width: 854px;
     }
 
-    input[type="text"] {
+    input[type="text"], input[type="password"] {
       flex: 1;
       padding: 12px;
       border-radius: 6px;
@@ -41,7 +41,7 @@
       font-size: 0.95rem;
     }
 
-    input[type="text"]:focus {
+    input:focus {
       outline: none;
       border-color: #9146FF;
     }
@@ -104,8 +104,9 @@
   <h1>Watch Party Sync 🎬</h1>
 
   <div class="box-container">
-    <input type="text" id="input-room-id" placeholder="Nome ou código da sala (Ex: sala123)">
-    <button id="btn-entrar-sala">Entrar na Sala</button>
+    <input type="text" id="input-room-id" placeholder="Nome do Lobby (Ex: sala-tck)">
+    <input type="password" id="input-room-pass" placeholder="Senha do Lobby">
+    <button id="btn-entrar-sala">Entrar / Criar Lobby</button>
   </div>
 
   <div class="box-container">
@@ -123,7 +124,7 @@
   </div>
 
   <div id="status">Status: Conectando...</div>
-  <div id="room-status" class="room-info">Sala atual: Nenhuma</div>
+  <div id="room-status" class="room-info">Lobby atual: Nenhum</div>
 
   <script src="app.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>

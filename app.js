@@ -3,7 +3,7 @@ const socket = io('https://stream-sync-server.onrender.com');
 let player;
 let modoLivre = false;
 let playerState = -1;
-let currentRoom = 'sala-padrao'; 
+let emSala = false;
 
 const statusDiv = document.getElementById('status');
 const roomStatusDiv = document.getElementById('room-status');
@@ -11,6 +11,7 @@ const btnVoltar = document.getElementById('btn-voltar');
 const btnSincronizar = document.getElementById('btn-sincronizar');
 
 const inputRoomId = document.getElementById('input-room-id');
+const inputRoomPass = document.getElementById('input-room-pass');
 const btnEntrarSala = document.getElementById('btn-entrar-sala');
 
 const inputVideoUrl = document.getElementById('input-video-url');
@@ -22,29 +23,37 @@ function extractVideoID(url) {
   return (match && match[2].length === 11) ? match[2] : null;
 }
 
+// Clique para entrar ou criar o lobby
+btnEntrarSala.addEventListener('click', () => {
+  const roomId = inputRoomId.value.trim();
+  const password = inputRoomPass.value.trim();
 
-socket.on('connect', () => {
-  entrarNaSala(currentRoom);
+  if (!roomId || !password) {
+    alert('Por favor, digite o nome e a senha do lobby!');
+    return;
+  }
+
+  socket.emit('join_room', { roomId, password });
 });
 
-function entrarNaSala(roomId) {
-  currentRoom = roomId;
-  socket.emit('join_room', roomId);
-  roomStatusDiv.innerText = `Sala atual: ${roomId}`;
-}
+// Erro de senha
+socket.on('room_error', (msg) => {
+  alert(msg);
+});
 
+// Sucesso ao entrar no lobby
+socket.on('room_joined', ({ roomId, videoId }) => {
+  emSala = true;
+  roomStatusDiv.innerText = `Lobby ativo: ${roomId}`;
+  statusDiv.innerText = 'Status: Conectado ao lobby!';
+  statusDiv.style.color = '#00e676';
 
-btnEntrarSala.addEventListener('click', () => {
-  const room = inputRoomId.value.trim();
-  if (room) {
-    entrarNaSala(room);
-    inputRoomId.value = '';
-  } else {
-    alert('Digite um nome ou código para a sala!');
+  if (player && typeof player.loadVideoById === 'function') {
+    player.loadVideoById(videoId);
   }
 });
 
-
+// Inicialização do Player do YouTube
 window.onYouTubeIframeAPIReady = function() {
   player = new YT.Player('player', {
     height: '480',
@@ -63,16 +72,21 @@ window.onYouTubeIframeAPIReady = function() {
 };
 
 function onPlayerReady(event) {
-  statusDiv.innerText = 'Status: Pronto para sincronizar';
-  statusDiv.style.color = '#00e676';
+  statusDiv.innerText = 'Status: Crie ou entre em um lobby para sincronizar';
+  statusDiv.style.color = '#a8a8b3';
 }
 
 function onPlayerStateChange(event) {
   playerState = event.data;
 }
 
-
+// Trocar vídeo
 btnCarregar.addEventListener('click', () => {
+  if (!emSala) {
+    alert('Entre em um lobby primeiro!');
+    return;
+  }
+
   const url = inputVideoUrl.value.trim();
   const videoId = extractVideoID(url);
 
@@ -84,27 +98,26 @@ btnCarregar.addEventListener('click', () => {
   }
 });
 
-
 socket.on('sync_video', (videoId) => {
   if (player && typeof player.loadVideoById === 'function') {
     modoLivre = false;
     player.loadVideoById(videoId);
-    statusDiv.innerText = 'Status: Vídeo carregado na sala!';
+    statusDiv.innerText = 'Status: Novo vídeo carregado no lobby!';
     statusDiv.style.color = '#00e676';
   }
 });
 
-
+// Envia tempo
 setInterval(() => {
-  if (player && typeof player.getCurrentTime === 'function' && playerState === YT.PlayerState.PLAYING) {
+  if (emSala && player && typeof player.getCurrentTime === 'function' && playerState === YT.PlayerState.PLAYING) {
     const meuTempo = player.getCurrentTime();
     socket.emit('send_tempo', meuTempo);
   }
 }, 1000);
 
-
+// Recebe tempo
 socket.on('sync_tempo', (tempoHost) => {
-  if (!player || typeof player.getCurrentTime !== 'function') return;
+  if (!emSala || !player || typeof player.getCurrentTime !== 'function') return;
 
   if (modoLivre) {
     statusDiv.innerText = 'Status: Modo Livre (Desincronizado)';
@@ -114,7 +127,7 @@ socket.on('sync_tempo', (tempoHost) => {
 
   if (playerState !== YT.PlayerState.PLAYING) return;
 
-  statusDiv.innerText = 'Status: Sincronizado com a sala';
+  statusDiv.innerText = 'Status: Sincronizado com o lobby';
   statusDiv.style.color = '#00e676';
 
   const tempoLocal = player.getCurrentTime();
