@@ -1,18 +1,24 @@
 const socket = io('https://stream-sync-server.onrender.com');
 
 let player;
-let modoLivre = false;
 let playerState = -1;
 let emSala = false;
 let playerPronto = false;
 let pendingVideoId = null;
-let souHost = false; 
+let souHost = false;
+
+
+let syncInteligenteAtivo = true;
+
+let meuPing = 0; // ms
 
 
 const lobbyCard = document.getElementById('lobby-card');
 const mainApp = document.getElementById('main-app');
 const statusDiv = document.getElementById('status');
 const roomStatusDiv = document.getElementById('room-status');
+const pingDisplay = document.getElementById('ping-display');
+const toggleSync = document.getElementById('toggle-sync');
 
 const tabCriar = document.getElementById('tab-criar');
 const tabEntrar = document.getElementById('tab-entrar');
@@ -28,12 +34,12 @@ const btnCarregar = document.getElementById('btn-carregar');
 const btnVoltar = document.getElementById('btn-voltar');
 const btnSincronizar = document.getElementById('btn-sincronizar');
 
-
 function extractVideoID(url) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
 }
+
 
 tabCriar.addEventListener('click', () => {
   tabCriar.classList.add('active');
@@ -66,9 +72,27 @@ function enviarAcaoSala(actionType) {
 }
 
 
-socket.on('room_error', (msg) => {
-  alert(msg);
+toggleSync.addEventListener('change', (e) => {
+  syncInteligenteAtivo = e.target.checked;
+  if (syncInteligenteAtivo) {
+    statusDiv.innerText = 'Status: Sync Constante Inteligente ATIVADO ⚡';
+    statusDiv.style.color = '#00e676';
+  } else {
+    statusDiv.innerText = 'Status: Sync Constante DESATIVADO (Modo Livre)';
+    statusDiv.style.color = '#ffb300';
+    if (playerPronto && player) player.setPlaybackRate(1.0);
+  }
 });
+
+setInterval(() => {
+  const inicio = Date.now();
+  socket.emit('ping_check', inicio, (timeEnviado) => {
+    meuPing = Date.now() - timeEnviado;
+    pingDisplay.innerText = `Latência da Rede: ${meuPing} ms | Status Sync: ${syncInteligenteAtivo ? 'ON' : 'OFF'}`;
+  });
+}, 4000);
+
+socket.on('room_error', (msg) => alert(msg));
 
 socket.on('room_joined', ({ roomId, videoId, isHost }) => {
   emSala = true;
@@ -77,7 +101,7 @@ socket.on('room_joined', ({ roomId, videoId, isHost }) => {
   lobbyCard.style.display = 'none';
   mainApp.style.display = 'flex';
 
-  const papel = souHost ? '👑 Anfitrião (Líder)' : '👀 Espectador';
+  const papel = souHost ? '👑 Anfitrião' : '👀 Espectador';
   roomStatusDiv.innerText = `Lobby ativo: ${roomId} | Seu papel: ${papel}`;
 
   if (videoId) {
@@ -90,10 +114,9 @@ socket.on('room_joined', ({ roomId, videoId, isHost }) => {
   }
 });
 
-
 socket.on('promoted_to_host', () => {
   souHost = true;
-  roomStatusDiv.innerText = `Lobby ativo: ${inputRoomId.value.trim()} | Seu papel: 👑 Anfitrião (Novo Líder)`;
+  roomStatusDiv.innerText = `Lobby ativo: ${inputRoomId.value.trim()} | Seu papel: 👑 Anfitrião`;
   statusDiv.innerText = 'Status: Você se tornou o novo anfitrião da sala!';
   statusDiv.style.color = '#00e676';
 });
@@ -132,10 +155,8 @@ function carregarVideoNoPlayer(videoId) {
   }
 }
 
-
 btnCarregar.addEventListener('click', () => {
   if (!emSala) return;
-
   const url = inputVideoUrl.value.trim();
   const videoId = extractVideoID(url);
 
@@ -148,56 +169,62 @@ btnCarregar.addEventListener('click', () => {
 });
 
 socket.on('sync_video', (videoId) => {
-  modoLivre = false;
   carregarVideoNoPlayer(videoId);
 });
 
 
 setInterval(() => {
   if (emSala && souHost && playerPronto && player && typeof player.getCurrentTime === 'function' && playerState === YT.PlayerState.PLAYING) {
-    socket.emit('send_tempo', player.getCurrentTime());
+    socket.emit('send_tempo', {
+      tempo: player.getCurrentTime(),
+      pingHost: meuPing
+    });
   }
 }, 1000);
 
 
-socket.on('sync_tempo', (tempoHost) => {
+socket.on('sync_tempo', ({ tempoHost, pingHost }) => {
 
-  if (souHost || !emSala || !playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
-
-  if (modoLivre) {
-    statusDiv.innerText = 'Status: Modo Livre (Desincronizado do Anfitrião)';
-    statusDiv.style.color = '#ffb300';
-    return;
-  }
+  if (souHost || !syncInteligenteAtivo || !emSala || !playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
 
   if (playerState !== YT.PlayerState.PLAYING) return;
 
-  statusDiv.innerText = 'Status: Sincronizado com o Anfitrião 👑';
-  statusDiv.style.color = '#00e676';
+
+  const atrasoHostAoServidorSeg = (pingHost / 2) / 1000;
+  const atrasoServidorAoEspectadorSeg = (meuPing / 2) / 1000;
+  const latenciaTotalSeg = atrasoHostAoServidorSeg + atrasoServidorAoEspectadorSeg;
+
+
+  const tempoRealCalculadoHost = tempoHost + latenciaTotalSeg;
 
   const tempoLocal = player.getCurrentTime();
-  const diferenca = tempoHost - tempoLocal;
+  const diferenca = tempoRealCalculadoHost - tempoLocal;
 
-  if (Math.abs(diferenca) < 0.3) {
+  statusDiv.innerText = 'Status: Sync Constante Inteligente (Compensado) ⚡';
+  statusDiv.style.color = '#00e676';
+
+
+  if (Math.abs(diferenca) < 0.5) {
     player.setPlaybackRate(1.0);
-  } else if (diferenca >= 0.3 && diferenca < 3.0) {
-    player.setPlaybackRate(1.1);
-  } else if (diferenca <= -0.3 && diferenca > -3.0) {
-    player.setPlaybackRate(0.9);
+  } else if (diferenca >= 0.5 && diferenca < 3.0) {
+    player.setPlaybackRate(1.05);
+  } else if (diferenca <= -0.5 && diferenca > -3.0) {
+    player.setPlaybackRate(0.95);
   } else if (Math.abs(diferenca) >= 3.0) {
-    player.seekTo(tempoHost, true);
+    player.seekTo(tempoRealCalculadoHost, true);
     player.setPlaybackRate(1.0);
   }
 });
 
 btnVoltar.addEventListener('click', () => {
   if (!playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
-  modoLivre = true;
   player.seekTo(player.getCurrentTime() - 10, true);
 });
 
+
 btnSincronizar.addEventListener('click', () => {
-  modoLivre = false;
-  statusDiv.innerText = 'Status: Sincronizando com o Anfitrião...';
+  if (!playerPronto || !player) return;
+  player.setPlaybackRate(1.0);
+  statusDiv.innerText = 'Status: Re-sincronizando com o Anfitrião...';
   statusDiv.style.color = '#00e676';
 });
