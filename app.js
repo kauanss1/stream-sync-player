@@ -7,13 +7,19 @@ let emSala = false;
 let playerPronto = false;
 let pendingVideoId = null;
 
+
 const lobbyCard = document.getElementById('lobby-card');
 const mainApp = document.getElementById('main-app');
 const statusDiv = document.getElementById('status');
 const roomStatusDiv = document.getElementById('room-status');
 
+const tabCriar = document.getElementById('tab-criar');
+const tabEntrar = document.getElementById('tab-entrar');
+
 const inputRoomId = document.getElementById('input-room-id');
 const inputRoomPass = document.getElementById('input-room-pass');
+
+const btnCriarSala = document.getElementById('btn-criar-sala');
 const btnEntrarSala = document.getElementById('btn-entrar-sala');
 
 const inputVideoUrl = document.getElementById('input-video-url');
@@ -28,7 +34,31 @@ function extractVideoID(url) {
 }
 
 
+tabCriar.addEventListener('click', () => {
+  tabCriar.classList.add('active');
+  tabEntrar.classList.remove('active');
+  btnCriarSala.style.display = 'block';
+  btnEntrarSala.style.display = 'none';
+});
+
+tabEntrar.addEventListener('click', () => {
+  tabEntrar.classList.add('active');
+  tabCriar.classList.remove('active');
+  btnEntrarSala.style.display = 'block';
+  btnCriarSala.style.display = 'none';
+});
+
+
+btnCriarSala.addEventListener('click', () => {
+  enviarAcaoSala('create');
+});
+
+
 btnEntrarSala.addEventListener('click', () => {
+  enviarAcaoSala('join');
+});
+
+function enviarAcaoSala(actionType) {
   const roomId = inputRoomId.value.trim();
   const password = inputRoomPass.value.trim();
 
@@ -37,25 +67,24 @@ btnEntrarSala.addEventListener('click', () => {
     return;
   }
 
-  socket.emit('join_room', { roomId, password });
-});
+  socket.emit('join_room', { roomId, password, actionType });
+}
 
 
 socket.on('room_error', (msg) => {
   alert(msg);
 });
 
-
 socket.on('room_joined', ({ roomId, videoId }) => {
   emSala = true;
-  lobbyCard.style.display = 'none'; 
-  mainApp.style.display = 'flex';   
+  lobbyCard.style.display = 'none';
+  mainApp.style.display = 'flex';
   roomStatusDiv.innerText = `Lobby ativo: ${roomId}`;
 
   if (videoId) {
     carregarVideoNoPlayer(videoId);
   } else {
-    statusDiv.innerText = 'Status: Cole um link do YouTube para iniciar a transmissão.';
+    statusDiv.innerText = 'Status: Cole um link do YouTube para iniciar.';
     statusDiv.style.color = '#ffb300';
   }
 });

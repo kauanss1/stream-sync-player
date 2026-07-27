@@ -23,22 +23,60 @@
       margin-bottom: 20px;
     }
 
-    .box-container {
+    /* Card Central do Menu de Salas */
+    #lobby-card {
+      background-color: #202024;
+      border: 1px solid #29292e;
+      border-radius: 8px;
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    
+    .tab-buttons {
       display: flex;
       gap: 10px;
-      margin-bottom: 15px;
-      width: 100%;
-      max-width: 854px;
+      border-bottom: 1px solid #29292e;
+      padding-bottom: 12px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background-color: transparent;
+      color: #a8a8b3;
+      border: none;
+      padding: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background-color: #29292e;
+      color: #9146FF;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
     input[type="text"], input[type="password"] {
-      flex: 1;
+      width: 100%;
       padding: 12px;
       border-radius: 6px;
       border: 1px solid #29292e;
-      background-color: #202024;
+      background-color: #121214;
       color: #fff;
       font-size: 0.95rem;
+      box-sizing: border-box;
     }
 
     input:focus {
@@ -46,12 +84,37 @@
       border-color: #9146FF;
     }
 
-    /* Oculta a área de vídeo e controles até o usuário entrar na sala */
+    button.primary-btn {
+      width: 100%;
+      background-color: #9146FF;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      transition: background-color 0.2s;
+    }
+
+    button.primary-btn:hover {
+      background-color: #772ce8;
+    }
+
+
     #main-app {
       display: none;
       flex-direction: column;
       align-items: center;
       width: 100%;
+    }
+
+    .box-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      width: 100%;
+      max-width: 854px;
     }
 
     #player-container {
@@ -68,26 +131,17 @@
       gap: 12px;
     }
 
-    button {
-      background-color: #9146FF;
+    button.secondary-btn {
+      background-color: #29292e;
       color: white;
       border: none;
       padding: 12px 20px;
       border-radius: 6px;
       cursor: pointer;
       font-weight: bold;
-      transition: background-color 0.2s;
     }
 
-    button:hover {
-      background-color: #772ce8;
-    }
-
-    button.secondary {
-      background-color: #29292e;
-    }
-
-    button.secondary:hover {
+    button.secondary-btn:hover {
       background-color: #323238;
     }
 
@@ -111,18 +165,27 @@
 
   <h1>Watch Party Sync 🎬</h1>
 
-  <div id="lobby-card" class="box-container">
-    <input type="text" id="input-room-id" placeholder="Nome do Lobby (Ex: lobby-tck)">
-    <input type="password" id="input-room-pass" placeholder="Senha privada">
-    <button id="btn-entrar-sala">Entrar / Criar Lobby</button>
+  <div id="lobby-card">
+    <div class="tab-buttons">
+      <button id="tab-criar" class="tab-btn active">Criar Sala</button>
+      <button id="tab-entrar" class="tab-btn">Entrar em Sala</button>
+    </div>
+
+    <div class="input-group">
+      <input type="text" id="input-room-id" placeholder="Nome da sala">
+      <input type="password" id="input-room-pass" placeholder="Senha da sala">
+    </div>
+
+    <button id="btn-criar-sala" class="primary-btn">Criar Nova Sala</button>
+    <button id="btn-entrar-sala" class="primary-btn" style="display: none;">Entrar na Sala</button>
   </div>
 
-  <div id="room-status" class="room-info">Você precisa entrar ou criar uma sala para continuar.</div>
+  <div id="room-status" class="room-info">Crie ou entre em uma sala para assistir com amigos.</div>
 
   <div id="main-app">
     <div class="box-container" style="margin-top: 20px;">
-      <input type="text" id="input-video-url" placeholder="Cole a URL do vídeo ou live do YouTube...">
-      <button id="btn-carregar">Carregar Vídeo</button>
+      <input type="text" id="input-video-url" placeholder="Cole o link do vídeo ou live do YouTube...">
+      <button id="btn-carregar" class="primary-btn" style="width: auto; padding: 12px 24px;">Carregar Vídeo</button>
     </div>
 
     <div id="player-container">
@@ -130,8 +193,8 @@
     </div>
 
     <div class="controls">
-      <button id="btn-voltar" class="secondary">⏪ Voltar 10s (Modo Livre)</button>
-      <button id="btn-sincronizar">🔄 Sincronizar com o Grupo</button>
+      <button id="btn-voltar" class="secondary-btn">⏪ Voltar 10s (Modo Livre)</button>
+      <button id="btn-sincronizar" class="primary-btn" style="width: auto;">🔄 Sincronizar com o Grupo</button>
     </div>
 
     <div id="status">Status: Aguardando vídeo...</div>
