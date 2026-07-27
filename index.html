@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Watch Party Sync 🎬</title>
+  
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121214;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      margin: 0;
+    }
+
+    h1 {
+      color: #9146FF;
+      margin-bottom: 20px;
+    }
+
+    #player-container {
+      margin-top: 10px;
+      border: 2px solid #29292e;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      background-color: #000;
+    }
+
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+    }
+
+    button {
+      background-color: #9146FF;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #772ce8;
+    }
+
+    button.secondary {
+      background-color: #29292e;
+    }
+
+    button.secondary:hover {
+      background-color: #323238;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-size: 0.95rem;
+      color: #00e676;
+      font-weight: 500;
+    }
+  </style>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+
+  <h1>Watch Party Sync 🎬</h1>
+
+  <div id="player-container">
+    <div id="player"></div>
+  </div>
+
+  <div class="controls">
+    <button id="btn-voltar" class="secondary">⏪ Voltar 10s (Modo Livre)</button>
+    <button id="btn-sincronizar">🔄 Sincronizar com o Grupo</button>
+  </div>
+
+  <div id="status">Status: Conectando...</div>
+
+  <script src="app.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
