@@ -117,7 +117,6 @@
       background-color: #000;
     }
 
-    /* Estilo da Chave Liga/Desliga */
     .sync-toggle-card {
       display: flex;
       align-items: center;
@@ -174,22 +173,6 @@
       transform: translateX(24px);
     }
 
-    .controls {
-      margin-top: 15px;
-      display: flex;
-      gap: 12px;
-    }
-
-    button.secondary-btn {
-      background-color: #29292e;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
     #status {
       margin-top: 12px;
       font-size: 0.95rem;
@@ -203,7 +186,6 @@
       color: #a8a8b3;
     }
 
-    /* 🔔 NOTIFICAÇÃO FLUTUANTE (TOAST) */
     #toast-notification {
       display: none;
       position: fixed;
@@ -230,7 +212,7 @@
 </head>
 <body>
 
-  <div id="toast-notification">⚠️ Sync Desativado: Modo Livre ativado!</div>
+  <div id="toast-notification">⚠️ Notificação</div>
 
   <h1>Watch Party Sync 🎬</h1>
 
@@ -272,11 +254,6 @@
 
     <div id="player-container">
       <div id="player"></div>
-    </div>
-
-    <div class="controls">
-      <button id="btn-voltar" class="secondary-btn">⏪ Voltar 10s</button>
-      <button id="btn-sincronizar" class="primary-btn" style="width: auto;">🔄 Forçar Re-Sync</button>
     </div>
 
     <div id="status">Status: Aguardando vídeo...</div>

@@ -7,17 +7,9 @@ let playerPronto = false;
 let pendingVideoId = null;
 let souHost = false;
 
-
 let syncInteligenteAtivo = true;
-
-
-let ultimoTempoConhecido = 0;
-let ignorarProximoSeek = false;
 let timerNotificacao = null;
-
-
-let meuPing = 0; 
-
+let meuPing = 0;
 
 const lobbyCard = document.getElementById('lobby-card');
 const mainApp = document.getElementById('main-app');
@@ -38,8 +30,6 @@ const btnEntrarSala = document.getElementById('btn-entrar-sala');
 
 const inputVideoUrl = document.getElementById('input-video-url');
 const btnCarregar = document.getElementById('btn-carregar');
-const btnVoltar = document.getElementById('btn-voltar');
-const btnSincronizar = document.getElementById('btn-sincronizar');
 
 function extractVideoID(url) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -47,7 +37,6 @@ function extractVideoID(url) {
   return (match && match[2].length === 11) ? match[2] : null;
 }
 
-// 🔔 Função para Exibir Notificação Flutuante
 function exibirNotificacao(texto) {
   toastNotification.innerText = texto;
   toastNotification.style.display = 'block';
@@ -56,10 +45,9 @@ function exibirNotificacao(texto) {
 
   timerNotificacao = setTimeout(() => {
     toastNotification.style.display = 'none';
-  }, 4000); // Fica visível por 4 segundos
+  }, 4000);
 }
 
-// Alternar abas do menu
 tabCriar.addEventListener('click', () => {
   tabCriar.classList.add('active');
   tabEntrar.classList.remove('active');
@@ -87,20 +75,6 @@ function enviarAcaoSala(actionType) {
   }
 
   socket.emit('join_room', { roomId, password, actionType });
-}
-
-// Função acionada ao desativar o Sync por mexer na barra
-function desativarSyncPorMoverBarra() {
-  if (souHost || !syncInteligenteAtivo) return;
-
-  syncInteligenteAtivo = false;
-  toggleSync.checked = false;
-
-  statusDiv.innerText = '⚠️ Sync Desativado: Você mexeu no tempo (Modo Livre). Clique em Re-Sync para voltar ao Anfitrião!';
-  statusDiv.style.color = '#ffb300';
-
-  // 🔔 Dispara a notificação na tela
-  exibirNotificacao('⚠️ Sync Desativado! Você agora está no Modo Livre.');
 }
 
 toggleSync.addEventListener('change', (e) => {
@@ -188,24 +162,6 @@ function carregarVideoNoPlayer(videoId) {
   }
 }
 
-// Monitora se o espectador pulou o tempo manualmente
-setInterval(() => {
-  if (!playerPronto || !player || typeof player.getCurrentTime !== 'function' || souHost || !syncInteligenteAtivo) return;
-
-  const tempoAtual = player.getCurrentTime();
-  const diferencaComUltimoTempo = Math.abs(tempoAtual - ultimoTempoConhecido);
-
-  if (ultimoTempoConhecido > 0 && diferencaComUltimoTempo > 2.5) {
-    if (ignorarProximoSeek) {
-      ignorarProximoSeek = false;
-    } else {
-      desativarSyncPorMoverBarra();
-    }
-  }
-
-  ultimoTempoConhecido = tempoAtual;
-}, 500);
-
 btnCarregar.addEventListener('click', () => {
   if (!emSala) return;
   const url = inputVideoUrl.value.trim();
@@ -224,7 +180,7 @@ socket.on('sync_video', (videoId) => {
 });
 
 setInterval(() => {
-  if (emSala && souHost && playerPronto && player && typeof player.getCurrentTime !== 'function' && playerState === YT.PlayerState.PLAYING) {
+  if (emSala && souHost && playerPronto && player && typeof player.getCurrentTime === 'function' && playerState === YT.PlayerState.PLAYING) {
     socket.emit('send_tempo', {
       tempo: player.getCurrentTime(),
       pingHost: meuPing
@@ -254,31 +210,7 @@ socket.on('sync_tempo', ({ tempoHost, pingHost }) => {
   } else if (diferenca <= -0.5 && diferenca > -3.0) {
     player.setPlaybackRate(0.95);
   } else if (Math.abs(diferenca) >= 3.0) {
-    ignorarProximoSeek = true;
     player.seekTo(tempoRealCalculadoHost, true);
     player.setPlaybackRate(1.0);
   }
-});
-
-btnVoltar.addEventListener('click', () => {
-  if (!playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
-
-  ignorarProximoSeek = true;
-  player.seekTo(player.getCurrentTime() - 10, true);
-
-  if (!souHost) {
-    desativarSyncPorMoverBarra();
-  }
-});
-
-btnSincronizar.addEventListener('click', () => {
-  if (!playerPronto || !player) return;
-
-  syncInteligenteAtivo = true;
-  toggleSync.checked = true;
-  player.setPlaybackRate(1.0);
-
-  statusDiv.innerText = 'Status: Re-sincronizando com o Anfitrião...';
-  statusDiv.style.color = '#00e676';
-  exibirNotificacao('⚡ Re-sincronizando com o Anfitrião...');
 });
