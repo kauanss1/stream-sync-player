@@ -23,8 +23,30 @@
       margin-bottom: 20px;
     }
 
+    .url-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      width: 100%;
+      max-width: 854px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #29292e;
+      background-color: #202024;
+      color: #fff;
+      font-size: 0.95rem;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #9146FF;
+    }
+
     #player-container {
-      margin-top: 10px;
       border: 2px solid #29292e;
       border-radius: 8px;
       overflow: hidden;
@@ -74,6 +96,11 @@
 <body>
 
   <h1>Watch Party Sync 🎬</h1>
+
+  <div class="url-container">
+    <input type="text" id="input-video-url" placeholder="Cole o link do vídeo ou live do YouTube aqui...">
+    <button id="btn-carregar">Carregar Vídeo</button>
+  </div>
 
   <div id="player-container">
     <div id="player"></div>

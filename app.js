@@ -1,4 +1,3 @@
-// 1. Conexão com o servidor hospedado no Render
 const socket = io('https://stream-sync-server.onrender.com');
 
 let player;
@@ -8,16 +7,24 @@ let playerState = -1;
 const statusDiv = document.getElementById('status');
 const btnVoltar = document.getElementById('btn-voltar');
 const btnSincronizar = document.getElementById('btn-sincronizar');
+const inputVideoUrl = document.getElementById('input-video-url');
+const btnCarregar = document.getElementById('btn-carregar');
+
+let currentVideoId = 'cctw1fn_630'; 
 
 
-const LIVE_VIDEO_ID = 'cctw1fn_630';
+function extractVideoID(url) {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
 
 
 window.onYouTubeIframeAPIReady = function() {
   player = new YT.Player('player', {
     height: '480',
     width: '854',
-    videoId: LIVE_VIDEO_ID,
+    videoId: currentVideoId,
     playerVars: {
       'playsinline': 1,
       'autoplay': 0,
@@ -40,6 +47,30 @@ function onPlayerStateChange(event) {
 }
 
 
+btnCarregar.addEventListener('click', () => {
+  const url = inputVideoUrl.value.trim();
+  const videoId = extractVideoID(url);
+
+  if (videoId) {
+    socket.emit('change_video', videoId);
+    inputVideoUrl.value = '';
+  } else {
+    alert('Por favor, insira um link válido do YouTube!');
+  }
+});
+
+
+socket.on('sync_video', (videoId) => {
+  if (player && typeof player.loadVideoById === 'function') {
+    currentVideoId = videoId;
+    modoLivre = false;
+    player.loadVideoById(videoId);
+    statusDiv.innerText = 'Status: Novo vídeo carregado para a sala!';
+    statusDiv.style.color = '#00e676';
+  }
+});
+
+
 setInterval(() => {
   if (player && typeof player.getCurrentTime === 'function' && playerState === YT.PlayerState.PLAYING) {
     const meuTempo = player.getCurrentTime();
@@ -51,14 +82,12 @@ setInterval(() => {
 socket.on('sync_tempo', (tempoHost) => {
   if (!player || typeof player.getCurrentTime !== 'function') return;
 
-
   if (modoLivre) {
     statusDiv.innerText = 'Status: Modo Livre (Desincronizado para rever lance)';
     statusDiv.style.color = '#ffb300';
     return;
   }
 
-  
   if (playerState !== YT.PlayerState.PLAYING) return;
 
   statusDiv.innerText = 'Status: Sincronizado com o grupo';
@@ -67,22 +96,20 @@ socket.on('sync_tempo', (tempoHost) => {
   const tempoLocal = player.getCurrentTime();
   const diferenca = tempoHost - tempoLocal;
 
-
   if (Math.abs(diferenca) < 0.3) {
     player.setPlaybackRate(1.0);
   } 
   else if (diferenca >= 0.3 && diferenca < 3.0) {
-    player.setPlaybackRate(1.1); 
+    player.setPlaybackRate(1.1);
   } 
   else if (diferenca <= -0.3 && diferenca > -3.0) {
-    player.setPlaybackRate(0.9); 
+    player.setPlaybackRate(0.9);
   } 
   else if (Math.abs(diferenca) >= 3.0) {
-    player.seekTo(tempoHost, true); 
+    player.seekTo(tempoHost, true);
     player.setPlaybackRate(1.0);
   }
 });
-
 
 btnVoltar.addEventListener('click', () => {
   if (!player || typeof player.getCurrentTime !== 'function') return;
