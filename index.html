@@ -98,6 +98,7 @@
       flex-direction: column;
       align-items: center;
       width: 100%;
+      position: relative;
     }
 
     .box-container {
@@ -194,17 +195,42 @@
       font-size: 0.95rem;
       color: #00e676;
       font-weight: 500;
+      text-align: center;
     }
 
     .ping-badge {
       font-size: 0.8rem;
       color: #a8a8b3;
     }
+
+    /* 🔔 NOTIFICAÇÃO FLUTUANTE (TOAST) */
+    #toast-notification {
+      display: none;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #ffb300;
+      color: #121214;
+      padding: 14px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      z-index: 9999;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
+
+  <div id="toast-notification">⚠️ Sync Desativado: Modo Livre ativado!</div>
 
   <h1>Watch Party Sync 🎬</h1>
 

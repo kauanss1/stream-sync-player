@@ -13,9 +13,10 @@ let syncInteligenteAtivo = true;
 
 let ultimoTempoConhecido = 0;
 let ignorarProximoSeek = false;
+let timerNotificacao = null;
 
 
-let meuPing = 0; // ms
+let meuPing = 0; 
 
 
 const lobbyCard = document.getElementById('lobby-card');
@@ -24,6 +25,7 @@ const statusDiv = document.getElementById('status');
 const roomStatusDiv = document.getElementById('room-status');
 const pingDisplay = document.getElementById('ping-display');
 const toggleSync = document.getElementById('toggle-sync');
+const toastNotification = document.getElementById('toast-notification');
 
 const tabCriar = document.getElementById('tab-criar');
 const tabEntrar = document.getElementById('tab-entrar');
@@ -45,6 +47,19 @@ function extractVideoID(url) {
   return (match && match[2].length === 11) ? match[2] : null;
 }
 
+// 🔔 Função para Exibir Notificação Flutuante
+function exibirNotificacao(texto) {
+  toastNotification.innerText = texto;
+  toastNotification.style.display = 'block';
+
+  if (timerNotificacao) clearTimeout(timerNotificacao);
+
+  timerNotificacao = setTimeout(() => {
+    toastNotification.style.display = 'none';
+  }, 4000); // Fica visível por 4 segundos
+}
+
+// Alternar abas do menu
 tabCriar.addEventListener('click', () => {
   tabCriar.classList.add('active');
   tabEntrar.classList.remove('active');
@@ -58,7 +73,6 @@ tabEntrar.addEventListener('click', () => {
   btnEntrarSala.style.display = 'block';
   btnCriarSala.style.display = 'none';
 });
-
 
 btnCriarSala.addEventListener('click', () => enviarAcaoSala('create'));
 btnEntrarSala.addEventListener('click', () => enviarAcaoSala('join'));
@@ -75,7 +89,7 @@ function enviarAcaoSala(actionType) {
   socket.emit('join_room', { roomId, password, actionType });
 }
 
-
+// Função acionada ao desativar o Sync por mexer na barra
 function desativarSyncPorMoverBarra() {
   if (souHost || !syncInteligenteAtivo) return;
 
@@ -84,21 +98,24 @@ function desativarSyncPorMoverBarra() {
 
   statusDiv.innerText = '⚠️ Sync Desativado: Você mexeu no tempo (Modo Livre). Clique em Re-Sync para voltar ao Anfitrião!';
   statusDiv.style.color = '#ffb300';
-}
 
+  // 🔔 Dispara a notificação na tela
+  exibirNotificacao('⚠️ Sync Desativado! Você agora está no Modo Livre.');
+}
 
 toggleSync.addEventListener('change', (e) => {
   syncInteligenteAtivo = e.target.checked;
   if (syncInteligenteAtivo) {
     statusDiv.innerText = 'Status: Sync Constante Inteligente ATIVADO ⚡';
     statusDiv.style.color = '#00e676';
+    exibirNotificacao('⚡ Sync Inteligente Reativado!');
   } else {
     statusDiv.innerText = 'Status: Sync Constante DESATIVADO (Modo Livre)';
     statusDiv.style.color = '#ffb300';
+    exibirNotificacao('⚠️ Sync Desativado! Modo Livre ativado.');
     if (playerPronto && player) player.setPlaybackRate(1.0);
   }
 });
-
 
 setInterval(() => {
   const inicio = Date.now();
@@ -135,6 +152,7 @@ socket.on('promoted_to_host', () => {
   roomStatusDiv.innerText = `Lobby ativo: ${inputRoomId.value.trim()} | Seu papel: 👑 Anfitrião`;
   statusDiv.innerText = 'Status: Você se tornou o novo anfitrião da sala!';
   statusDiv.style.color = '#00e676';
+  exibirNotificacao('👑 Você agora é o novo Anfitrião da sala!');
 });
 
 window.onYouTubeIframeAPIReady = function() {
@@ -170,13 +188,12 @@ function carregarVideoNoPlayer(videoId) {
   }
 }
 
-
+// Monitora se o espectador pulou o tempo manualmente
 setInterval(() => {
   if (!playerPronto || !player || typeof player.getCurrentTime !== 'function' || souHost || !syncInteligenteAtivo) return;
 
   const tempoAtual = player.getCurrentTime();
   const diferencaComUltimoTempo = Math.abs(tempoAtual - ultimoTempoConhecido);
-
 
   if (ultimoTempoConhecido > 0 && diferencaComUltimoTempo > 2.5) {
     if (ignorarProximoSeek) {
@@ -206,9 +223,8 @@ socket.on('sync_video', (videoId) => {
   carregarVideoNoPlayer(videoId);
 });
 
-
 setInterval(() => {
-  if (emSala && souHost && playerPronto && player && typeof player.getCurrentTime === 'function' && playerState === YT.PlayerState.PLAYING) {
+  if (emSala && souHost && playerPronto && player && typeof player.getCurrentTime !== 'function' && playerState === YT.PlayerState.PLAYING) {
     socket.emit('send_tempo', {
       tempo: player.getCurrentTime(),
       pingHost: meuPing
@@ -216,13 +232,11 @@ setInterval(() => {
   }
 }, 1000);
 
-
 socket.on('sync_tempo', ({ tempoHost, pingHost }) => {
   if (souHost || !syncInteligenteAtivo || !emSala || !playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
 
   if (playerState !== YT.PlayerState.PLAYING) return;
 
-  
   const atrasoHost = (pingHost / 2) / 1000;
   const atrasoEspectador = (meuPing / 2) / 1000;
   const tempoRealCalculadoHost = tempoHost + atrasoHost + atrasoEspectador;
@@ -240,12 +254,11 @@ socket.on('sync_tempo', ({ tempoHost, pingHost }) => {
   } else if (diferenca <= -0.5 && diferenca > -3.0) {
     player.setPlaybackRate(0.95);
   } else if (Math.abs(diferenca) >= 3.0) {
-    ignorarProximoSeek = true; 
+    ignorarProximoSeek = true;
     player.seekTo(tempoRealCalculadoHost, true);
     player.setPlaybackRate(1.0);
   }
 });
-
 
 btnVoltar.addEventListener('click', () => {
   if (!playerPronto || !player || typeof player.getCurrentTime !== 'function') return;
@@ -258,7 +271,6 @@ btnVoltar.addEventListener('click', () => {
   }
 });
 
-
 btnSincronizar.addEventListener('click', () => {
   if (!playerPronto || !player) return;
 
@@ -268,4 +280,5 @@ btnSincronizar.addEventListener('click', () => {
 
   statusDiv.innerText = 'Status: Re-sincronizando com o Anfitrião...';
   statusDiv.style.color = '#00e676';
+  exibirNotificacao('⚡ Re-sincronizando com o Anfitrião...');
 });
