@@ -17,6 +17,7 @@ const statusDiv = document.getElementById('status');
 const roomStatusDiv = document.getElementById('room-status');
 const pingDisplay = document.getElementById('ping-display');
 const toggleSync = document.getElementById('toggle-sync');
+const playerWrapper = document.getElementById('player-wrapper');
 const toastNotification = document.getElementById('toast-notification');
 
 const tabCriar = document.getElementById('tab-criar');
@@ -30,6 +31,13 @@ const btnEntrarSala = document.getElementById('btn-entrar-sala');
 
 const inputVideoUrl = document.getElementById('input-video-url');
 const btnCarregar = document.getElementById('btn-carregar');
+
+const teclasControlePlayer = [
+  'ArrowLeft', 'ArrowRight', 'Space', 
+  'KeyJ', 'KeyL', 'KeyK',
+  'Digit0', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 
+  'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'
+];
 
 function extractVideoID(url) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -47,6 +55,28 @@ function exibirNotificacao(texto) {
     toastNotification.style.display = 'none';
   }, 4000);
 }
+
+function desativarSyncPorInteracaoManual() {
+  if (souHost || !syncInteligenteAtivo || !emSala) return;
+
+  syncInteligenteAtivo = false;
+  toggleSync.checked = false;
+
+  statusDiv.innerText = '⚠️ Sync Desativado: Modo Livre (Ative a chave para voltar!)';
+  statusDiv.style.color = '#ffb300';
+
+  exibirNotificacao('⚠️ Sync Desativado: Modo Livre ativado.');
+}
+
+playerWrapper.addEventListener('mousedown', desativarSyncPorInteracaoManual);
+playerWrapper.addEventListener('touchstart', desativarSyncPorInteracaoManual);
+
+document.addEventListener('keydown', (event) => {
+  if (!emSala || souHost || !syncInteligenteAtivo) return;
+  if (teclasControlePlayer.includes(event.code)) {
+    desativarSyncPorInteracaoManual();
+  }
+});
 
 tabCriar.addEventListener('click', () => {
   tabCriar.classList.add('active');
@@ -131,8 +161,8 @@ socket.on('promoted_to_host', () => {
 
 window.onYouTubeIframeAPIReady = function() {
   player = new YT.Player('player', {
-    height: '480',
-    width: '854',
+    height: '100%',
+    width: '100%',
     playerVars: {
       'playsinline': 1,
       'autoplay': 0,
