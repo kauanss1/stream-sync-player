@@ -57,7 +57,7 @@ tabEntrar.addEventListener('click', () => {
   tabEntrar.classList.add('active'); 
   tabCriar.classList.remove('active');
   btnEntrarSala.style.display = 'block'; 
-  btnCriarSala.style.display = 'none';
+  btnEntrarSala.style.display = 'none';
 });
 
 btnCriarSala.addEventListener('click', () => enviarAcaoSala('create'));
@@ -177,7 +177,8 @@ socket.on('sync_video', (videoId) => carregarVideoNoPlayer(videoId));
 
 setInterval(() => {
   if (emSala && souHost && playerPronto && player && typeof player.getCurrentTime === 'function' && playerState === YT.PlayerState.PLAYING) {
-    socket.emit('send_tempo', { tempo: player.getCurrentTime(), pingHost: meuPing });
+    // 🎯 AQUI FOI CORRIGIDO: de 'tempo' para 'tempoHost'
+    socket.emit('send_tempo', { tempoHost: player.getCurrentTime(), pingHost: meuPing });
   }
 }, 1000);
 
